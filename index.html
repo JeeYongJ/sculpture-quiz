@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ภารกิจนักปั้นตัวจิ๋ว | เกมทบทวนประติมากรรม</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#fff7e6;--card:#fff;--tx:#2b2540;--mut:#6b6485;--a:#ff5d73;--b:#27b4f5;--c:#ffb703;--d:#2ecc71}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1a30;--card:#2a2645;--tx:#fff;--mut:#bbb5d6}}
+:root[data-theme="dark"]{--bg:#1d1a30;--card:#2a2645;--tx:#fff;--mut:#bbb5d6}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--tx);font-family:"Noto Sans Thai","Sarabun",system-ui,sans-serif;display:flex;justify-content:center;padding:14px}
+.app{width:100%;max-width:640px}
+.card{background:var(--card);border-radius:22px;padding:18px;box-shadow:0 6px 0 rgba(0,0,0,.1);text-align:center}
+h1{margin:6px 0;font-size:1.7rem}
+p{line-height:1.6;margin:8px 0}
+.mut{color:var(--mut);font-size:.95rem}
+input{font:inherit;padding:12px 14px;border-radius:14px;border:3px solid var(--b);width:100%;max-width:300px;text-align:center;background:var(--bg);color:var(--tx)}
+.btn{font:inherit;font-weight:700;border:0;border-radius:16px;padding:12px 26px;margin-top:12px;color:#fff;background:var(--a);box-shadow:0 5px 0 rgba(0,0,0,.2);cursor:pointer}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.2)}
+.top{display:flex;justify-content:space-between;font-weight:700;margin-bottom:8px}
+.bar{height:12px;background:rgba(128,128,128,.25);border-radius:9px;overflow:hidden;margin-bottom:10px}
+#fill{height:100%;width:100%;background:var(--d);transition:width .1s linear,background .3s}
+canvas{width:100%;max-width:240px;height:170px;display:block;margin:0 auto}
+.q{font-size:1.15rem;font-weight:700;margin:6px 0 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.opt{font:inherit;font-weight:700;color:#fff;border:0;border-radius:16px;padding:14px 8px;min-height:84px;box-shadow:0 5px 0 rgba(0,0,0,.2);cursor:pointer;font-size:.98rem}
+.opt:nth-child(1){background:var(--a)}.opt:nth-child(2){background:#1e9be0}.opt:nth-child(3){background:#e69a00;color:#2b2540}.opt:nth-child(4){background:#22a85a}
+.opt:disabled{cursor:default;opacity:.55}
+.opt.right{opacity:1;outline:5px solid #fff;box-shadow:0 0 0 8px #2ecc71}
+.opt.wrong{opacity:.9;outline:4px dashed #fff}
+.fb{margin-top:12px;padding:12px;border-radius:14px;text-align:left;background:rgba(255,183,3,.2);display:none}
+.fb.ok{background:rgba(46,204,113,.22)}
+.big{font-size:3rem;font-weight:800;color:var(--a)}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+<div id="start" class="card">
+<div style="font-size:3rem">🗿🎨</div>
+<h1>ภารกิจนักปั้นตัวจิ๋ว!</h1>
+<p>ใครพร้อมลุยบ้าง? มาทบทวนเรื่องประติมากรรมกันแบบสนุก ๆ 10 ข้อ ข้อละ 15 วินาที<br>เล่นเพื่อสนุกและเก็บความรู้ ไม่มีใครแพ้ในเกมนี้! 💪</p>
+<input id="nm" maxlength="20" placeholder="พิมพ์ชื่อของเธอ">
+<br><button class="btn" id="go">เริ่มปั้นเลย! 🚀</button>
+<p class="mut">ตอบได้ข้อละ 1 ครั้ง • ตอบถูกได้ข้อละ 0.5 คะแนน (เต็ม 5)</p>
+</div>
+
+<div id="game" class="card hide">
+<div class="top"><span id="no">ข้อ 1/10</span><span id="sc">⭐ 0</span><span id="tm">15</span></div>
+<div class="bar"><div id="fill"></div></div>
+<canvas id="cv" width="480" height="340"></canvas>
+<div class="q" id="q"></div>
+<div class="grid" id="opts"></div>
+<div class="fb" id="fb"></div>
+<button class="btn hide" id="nx">ไปข้อต่อไป ➡️</button>
+</div>
+
+<div id="end" class="card hide">
+<div style="font-size:3rem">🏆</div>
+<h1 id="eh"></h1>
+<div class="big" id="es"></div>
+<p id="em"></p>
+<button class="btn" id="re">เล่นอีกรอบ 🔁</button>
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+var Q=[
+{q:"ประติมากรรมคือผลงานศิลปะแบบใด?",ok:"งานศิลปะ 3 มิติ ที่จับต้องและมองได้รอบด้าน",bad:["งานศิลปะ 2 มิติ ที่วาดบนกระดาษ","งานที่มีแต่เสียงดนตรี","งานเขียนตัวอักษรสวย ๆ"],why:"ประติมากรรมคืองานศิลปะ 3 มิติ ที่มีความกว้าง ความยาว และความลึก/สูง เราจึงเดินดูได้รอบ ๆ ชิ้นงาน",s:"cube"},
+{q:"งานประติมากรรมมี 3 มิติ คือข้อใด?",ok:"กว้าง ยาว สูง (ลึก)",bad:["สี แสง เงา","เส้น สี รูปร่าง","ดัง เบา ช้า"],why:"3 มิติ คือ กว้าง ยาว และสูง (ลึก) ทำให้งานมีปริมาตร ต่างจากภาพวาดที่มีแค่กว้างกับยาว",s:"axes"},
+{q:"การ “ปั้น” คือวิธีสร้างงานแบบใด?",ok:"เพิ่มเนื้อวัสดุทีละน้อย เช่น ดินเหนียว",bad:["เอาเนื้อวัสดุออกด้วยสิ่ว","เทของเหลวลงแม่พิมพ์","ระบายสีทับบนผ้าใบ"],why:"การปั้นคือการ “เติม” หรือ “ขึ้นรูป” วัสดุอ่อนนุ่ม เช่น ดินเหนียว ดินน้ำมัน ให้เป็นรูปร่างที่ต้องการ",s:"sphere"},
+{q:"การ “แกะสลัก” ทำอย่างไร?",ok:"ตัดหรือสกัดเนื้อวัสดุออก เช่น หิน ไม้",bad:["เติมดินเพิ่มไปเรื่อย ๆ","เทปูนลงแม่พิมพ์","พับกระดาษเป็นรูปร่าง"],why:"การแกะสลักคือการ “ตัดทอน” วัสดุแข็งออกจนเหลือรูปร่างที่ต้องการ ใช้เครื่องมือเช่น สิ่วและค้อน",s:"carve"},
+{q:"การ “หล่อ” ใช้ขั้นตอนใดเป็นหลัก?",ok:"เทวัสดุเหลวลงแม่พิมพ์ แล้วรอให้แข็งตัว",bad:["ใช้มีดตัดแต่งไม้","ใช้นิ้วปั้นดินเป็นก้อน","ต่อเศษวัสดุเข้าด้วยกัน"],why:"การหล่อคือการเทวัสดุเหลว เช่น ปูนปลาสเตอร์ หรือโลหะหลอมเหลว ลงในแม่พิมพ์ รอแข็งแล้วจึงถอดออก",s:"cyl"},
+{q:"การ “ประกอบ” หรือ “ต่อเชื่อม” คืออะไร?",ok:"นำวัสดุหลายชิ้นมาต่อรวมกันเป็นผลงาน",bad:["ทุบก้อนหินให้เล็กลง","วาดภาพบนกำแพง","ถ่ายรูปงานศิลปะ"],why:"การประกอบคือการนำวัสดุต่าง ๆ เช่น เหล็ก ไม้ ของเหลือใช้ มาต่อกันเป็นรูปทรงใหม่ ๆ ได้อย่างสร้างสรรค์",s:"mix"},
+{q:"ประติมากรรมนูนต่ำ เช่น เหรียญ มีลักษณะอย่างไร?",ok:"ลวดลายนูนขึ้นจากพื้นผิวเพียงเล็กน้อย",bad:["ลอยตัว มองได้รอบด้าน","แบนเรียบ ไม่มีความนูน","ลึกลงไปเป็นหลุมทั้งหมด"],why:"นูนต่ำคือลายที่ยื่นออกจากพื้นหลังนิดเดียว มักดูได้ด้านหน้าเป็นหลัก เช่น ลายบนเหรียญหรือตราประทับ",s:"coin"},
+{q:"ประติมากรรมลอยตัว ต่างจากนูนต่ำอย่างไร?",ok:"ดูได้รอบด้าน เดินชมได้ทุกมุม",bad:["ดูได้ด้านหน้าด้านเดียว","ติดอยู่กับผนังเท่านั้น","ต้องใช้แว่นพิเศษดู"],why:"ประติมากรรมลอยตัวตั้งอยู่เองได้ จึงมองเห็นได้รอบด้าน เช่น รูปปั้นคนหรือสัตว์ในสวนสาธารณะ",s:"knot"},
+{q:"วัสดุข้อใดนิยมใช้ปั้นประติมากรรมที่สุด?",ok:"ดินเหนียว หรือดินน้ำมัน",bad:["กระดาษทิชชูเปียก","น้ำเปล่า","แสงแดด"],why:"ดินเหนียวและดินน้ำมันนุ่ม ขึ้นรูปง่าย แก้ไขได้ จึงเหมาะกับนักปั้นมือใหม่อย่างเรา!",s:"cone"},
+{q:"ข้อใดไม่ใช่งานประติมากรรม?",ok:"ภาพวาดสีน้ำบนกระดาษแผ่นเรียบ",bad:["รูปปั้นพระพุทธรูป","ตุ๊กตาดินเหนียวปั้นมือ","รูปแกะสลักไม้ลายไทย"],why:"ภาพวาดบนกระดาษแบนเป็นงาน 2 มิติ ไม่ใช่ประติมากรรม ส่วนตัวเลือกอื่นมีปริมาตรจับต้องได้",s:"plane"}
+];
+var CP=[1,3,0,2,3,0,2,1,3,0]; // ตำแหน่งคำตอบถูกสลับไปมา
+var COL=[0xff5d73,0x27b4f5,0xffb703,0x2ecc71,0xa66bff];
+var i=0,score=0,left=15,tick=null,done=false,name="",rend,scene,cam,grp;
+var $=function(x){return document.getElementById(x)};
+
+function initGL(){
+ if(rend||typeof THREE==="undefined")return;
+ try{
+  rend=new THREE.WebGLRenderer({canvas:$("cv"),alpha:true,antialias:true});
+  rend.setSize(480,340,false);
+  scene=new THREE.Scene();
+  cam=new THREE.PerspectiveCamera(40,480/340,.1,50);cam.position.set(0,.6,6);cam.lookAt(0,0,0);
+  scene.add(new THREE.AmbientLight(0xffffff,.65));
+  var l=new THREE.DirectionalLight(0xffffff,.9);l.position.set(3,4,5);scene.add(l);
+  (function loop(){requestAnimationFrame(loop);if(grp){grp.rotation.y+=.02;}rend.render(scene,cam)})();
+ }catch(e){rend=null}
+}
+function mat(c){return new THREE.MeshStandardMaterial({color:c,roughness:.45,metalness:.1})}
+function mk(g,c,x,y,z){var m=new THREE.Mesh(g,mat(c));m.position.set(x||0,y||0,z||0);return m}
+function build(s,n){
+ if(!rend)return;
+ if(grp)scene.remove(grp);
+ grp=new THREE.Group();var c=COL[n%5],G=THREE;
+ if(s==="cube")grp.add(mk(new G.BoxGeometry(2,2,2),c));
+ else if(s==="axes"){grp.add(mk(new G.BoxGeometry(3,.4,.4),COL[0],0,-1,0));grp.add(mk(new G.BoxGeometry(.4,3,.4),COL[1],-1.5,.4,0));grp.add(mk(new G.BoxGeometry(.4,.4,3),COL[3],0,-1,0))}
+ else if(s==="sphere"){grp.add(mk(new G.SphereGeometry(1.5,32,24),c));grp.add(mk(new G.SphereGeometry(.7,24,16),COL[2],0,1.7,0))}
+ else if(s==="carve"){grp.add(mk(new G.BoxGeometry(2,2,2),c));grp.add(mk(new G.BoxGeometry(1.1,1.1,2.2),0xfff7e6,.8,.8,0))}
+ else if(s==="cyl")grp.add(mk(new G.CylinderGeometry(1,1.3,2.4,32),c));
+ else if(s==="mix"){grp.add(mk(new G.BoxGeometry(1.2,1.2,1.2),COL[0],-1,-.6,0));grp.add(mk(new G.SphereGeometry(.8,24,16),COL[1],.5,.2,0));grp.add(mk(new G.ConeGeometry(.7,1.6,24),COL[2],1.2,-.6,.4))}
+ else if(s==="coin"){var m=mk(new G.CylinderGeometry(1.8,1.8,.3,40),COL[2]);m.rotation.x=Math.PI/2;grp.add(m);var t=mk(new G.TorusGeometry(.9,.15,16,32),COL[4],0,0,.2);grp.add(t)}
+ else if(s==="knot")grp.add(mk(new G.TorusKnotGeometry(1,.35,100,16),c));
+ else if(s==="cone"){grp.add(mk(new G.ConeGeometry(1.4,2.6,32),c))}
+ else if(s==="plane"){var p=mk(new G.BoxGeometry(2.6,1.9,.05),0xffffff);grp.add(p);grp.add(mk(new G.SphereGeometry(.4,16,12),COL[1],-.5,.2,.05));grp.add(mk(new G.SphereGeometry(.3,16,12),COL[0],.5,-.2,.05))}
+ grp.rotation.x=.25;scene.add(grp);
+}
+
+function show(id){["start","game","end"].forEach(function(x){$(x).classList.toggle("hide",x!==id)})}
+function load(){
+ var o=Q[i];done=false;left=15;
+ $("no").textContent="ข้อ "+(i+1)+"/10";$("sc").textContent="⭐ "+score;
+ $("q").textContent=o.q;$("fb").style.display="none";$("nx").classList.add("hide");
+ var opts=o.bad.slice();opts.splice(CP[i],0,o.ok);
+ var box=$("opts");box.innerHTML="";
+ opts.forEach(function(t,k){var b=document.createElement("button");b.className="opt";b.textContent=t;b.onclick=function(){pick(k,opts)};box.appendChild(b)});
+ build(o.s,i);timer();
+}
+function timer(){
+ clearInterval(tick);var t0=Date.now();
+ tick=setInterval(function(){
+  var r=15-(Date.now()-t0)/1000;left=Math.max(0,r);
+  $("tm").textContent="⏱ "+Math.ceil(left);
+  $("fill").style.width=(left/15*100)+"%";
+  $("fill").style.background=left<5?"#ff5d73":"#2ecc71";
+  if(left<=0){clearInterval(tick);pick(-1)}
+ },100);
+}
+function pick(k){
+ if(done)return;done=true;clearInterval(tick);
+ var o=Q[i],bs=document.querySelectorAll(".opt"),fb=$("fb"),good=k===CP[i];
+ bs.forEach(function(b,j){b.disabled=true;if(j===CP[i])b.classList.add("right");else if(j===k)b.classList.add("wrong")});
+ fb.style.display="block";fb.className="fb"+(good?" ok":"");
+ if(good){score+=.5;$("sc").textContent="⭐ "+score;fb.innerHTML="🎉 <b>เก่งมาก! ได้ +0.5 คะแนน</b><br>"+o.why}
+ else fb.innerHTML=(k<0?"⏰ <b>หมดเวลาแล้ว ไม่เป็นไรนะ!</b>":"💡 <b>เกือบแล้ว ลองดูเฉลยกัน!</b>")+"<br>✅ คำตอบคือ: <b>"+o.ok+"</b><br>"+o.why+"<br><i>ข้อผิดพลาดคือครูที่ดีที่สุด ข้อหน้าลุยต่อ! 💪</i>";
+ $("nx").textContent=i<9?"ไปข้อต่อไป ➡️":"ดูผลสรุป 🏁";$("nx").classList.remove("hide");
+}
+function finish(){
+ show("end");
+ $("eh").textContent="สุดยอดมาก "+name+"!";
+ $("es").textContent=score+" / 5";
+ var m=score>=4?"ว่าที่ประติมากรตัวจริง! 🌟 เข้าใจเรื่องประติมากรรมได้ดีมาก":score>=2.5?"เยี่ยมเลย! 🎨 เก็บความรู้ได้เยอะแล้ว ทบทวนอีกนิดจะยิ่งเก่ง":"ขอบคุณที่ลองเล่นนะ! 🌱 ทุกข้อที่พลาดคือความรู้ใหม่ ลองเล่นอีกรอบ รับรองได้เพิ่มแน่นอน";
+ $("em").textContent=m;
+}
+$("go").onclick=function(){name=$("nm").value.trim()||"นักปั้น";i=0;score=0;show("game");initGL();load()};
+$("nx").onclick=function(){i++;if(i>9)finish();else load()};
+$("re").onclick=function(){show("start")};
+</script>
+</body>
+</html>
